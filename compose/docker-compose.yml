@@ -1,0 +1,442 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    user: "1000:1000"
+    devices:
+      - /dev/dri:/dev/dri
+    expose:
+     - "8096"
+    volumes:
+      - /srv/docker/config/jellyfin:/config
+      - /srv/mergerfs/lukas/media/movies:/media/movies
+      - /srv/mergerfs/lukas/media/tvShows:/media/tvShows
+      - /srv/mergerfs/lukas/media/anime:/media/anime
+      - /srv/mergerfs/lukas/media/music:/media/music
+    restart: unless-stopped
+    networks:
+      - nginx-proxy
+
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    container_name: audiobookshelf
+    user: "1000:1000"
+    ports:
+      - 13378:80
+    volumes:
+      - /srv/mergerfs/lukas/media/audiobooks:/audiobooks
+      - /srv/mergerfs/lukas/media/podcasts:/podcasts
+      - /srv/docker/config/audiobookshelf/metadata:/metadata
+      - /srv/docker/config/audiobookshelf/config:/config
+    restart: unless-stopped
+
+  kavita:
+    image: jvmilazz0/kavita:latest
+    container_name: kavita
+    ports:
+      - "5000:5000"
+    volumes:
+      - /srv/docker/config/kavita:/kavita/config
+      - /srv/mergerfs/lukas/media/books:/media/books
+    restart: unless-stopped
+
+  stirling-pdf:
+    image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest
+    container_name: stirlingpdf
+    user: "0:0"
+    ports:
+      - 8081:8080
+    volumes:
+      - /srv/docker/config/stirlingpdf:/usr/share/tessdata
+      - /srv/mergerfs/lukas/media/pdfs:/pdfs
+    restart: unless-stopped
+
+  adguard:
+    image: adguard/adguardhome:latest
+    container_name: adguard
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "3000:3000/tcp"
+    restart: unless-stopped
+    volumes:
+      - /srv/docker/config/adguardhome/work:/opt/adguardhome/work
+      - /srv/docker/config/adguardhome/conf:/opt/adguardhome/conf
+
+  nginxproxymanager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginxproxymanager
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    volumes:
+      - /srv/docker/config/nginx/data:/data
+      - /srv/docker/config/nginx/letsencrypt:/etc/letsencrypt
+    networks:
+     - nginx-proxy
+     - arr-net
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/docker/config/portainer/data:/data
+
+  whatsupdocker:
+    image: getwud/wud
+    container_name: wud
+    # user: "1000:1000"  # uncommented due to permission issues
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env
+    environment:
+     - WUD_AUTH_ADMIN_USER=${ADMIN_USER}
+     - WUD_AUTH_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    restart: unless-stopped
+
+  dashy:
+    image: lissy93/dashy:latest
+    container_name: dashy
+    user: "0:0"
+    restart: unless-stopped
+    volumes:
+      - /srv/docker/config/dashy/conf.yml:/app/user-data/conf.yml
+      - /srv/docker/config/dashy/dashboard2.yml:/app/user-data/dashboard2.yml
+      - /srv/docker/config/dashy:/app/user-data/item-icons/
+      - /srv/docker/icons:/app/public/icons
+    expose:
+      - "8080"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      disable: true
+    networks:
+      - nginx-proxy
+
+  homer:
+    image: b4bz/homer:latest
+    container_name: homer
+    user: "1000:1000"
+    volumes:
+      - /srv/docker/config/homer/data:/www/assets
+    ports:
+      - "8082:8080"
+    restart: unless-stopped
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    volumes:
+      - /srv/docker/config/transmission/data:/config
+      - /srv/mergerfs/lukas/media/downloads:/downloads
+    ports:
+      - "9091:9091"
+      - "51413:51413"
+      - "51413:51413/udp"
+    restart: unless-stopped
+    networks:
+      - arr-net
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    volumes:
+      - /srv/docker/config/radarr:/config
+      - /srv/mergerfs/lukas/media/movies:/movies
+      - /srv/mergerfs/lukas/media/downloads:/downloads
+    ports:
+      - "7878:7878"
+    restart: unless-stopped
+    networks:
+      - arr-net
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    volumes:
+      - /srv/docker/config/sonarr:/config
+      - /srv/mergerfs/lukas/media/tvShows:/tvShows
+      - /srv/mergerfs/lukas/media/anime:/anime
+      - /srv/mergerfs/lukas/media/downloads:/downloads
+    ports:
+      - "8989:8989"
+    restart: unless-stopped
+    networks:
+      - arr-net
+
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    # extends:
+    #   file: hwaccel.transcoding.yml
+    #   service: cpu # set to one of [nvenc, quicksync, rkmpp, vaapi, vaapi-wsl] for accelerated transcoding
+    volumes:
+      # Do not edit the next line. If you want to change the media storage location on your system, edit the value of UPLOAD_LOCATION in the .env file
+      - ${UPLOAD_LOCATION}:/data
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - .env
+    ports:
+      - '2283:2283'
+    depends_on:
+      - redis
+      - database
+    restart: always
+    healthcheck:
+      disable: false
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    # For hardware acceleration, add one of -[armnn, cuda, rocm, openvino, rknn] to the image tag.
+    # Example tag: ${IMMICH_VERSION:-release}-cuda
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    # extends: # uncomment this section for hardware acceleration - see https://docs.immich.app/features/ml-hardware-acceleration
+    #   file: hwaccel.ml.yml
+    #   service: cpu # set to one of [armnn, cuda, rocm, openvino, openvino-wsl, rknn] for accelerated inference - use the `-wsl` version for WSL2 where applicable
+    volumes:
+      - model-cache:/cache
+    env_file:
+      - .env
+    restart: always
+    healthcheck:
+      disable: false
+
+  redis:
+    container_name: immich_redis
+    image: docker.io/valkey/valkey:9@sha256:3b55fbaa0cd93cf0d9d961f405e4dfcc70efe325e2d84da207a0a8e6d8fde4f9
+    healthcheck:
+      test: redis-cli ping || exit 1
+    restart: always
+
+  database:
+    container_name: immich_postgres
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    volumes:
+      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+    shm_size: 128mb
+    restart: always
+    healthcheck:
+      disable: false
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    env_file:
+      - /srv/docker/compose/.env
+    environment:
+      - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - NODE_ENV=production
+      - TZ=${GENERIC_TIMEZONE}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - /srv/docker/config/n8n/local-files:/files
+
+  netbootxyz:
+    image: ghcr.io/netbootxyz/netbootxyz
+    container_name: netbootxyz
+    environment:
+      - MENU_VERSION=3.0.1
+    volumes:
+      - /srv/docker/config/netbootxyz/config:/config
+      - /srv/docker/config/netbootxyz/assets:/assets
+    ports:
+      - 3002:3000
+      - 69:69/udp
+      - 8080:80
+    restart: unless-stopped
+
+  codeserver:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: code-server
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Europe/Berlin
+      - PASSWORD=codeserver-lukas
+      - SUDO_PASSWORD=debian-root
+    volumes:
+      - /srv/docker/config/codeserver/config:/config
+      - /srv:/srv
+    ports:
+      - 8443:8443
+    restart: unless-stopped
+
+  komga:
+    image: 08shiro80/komga:1.24.3-fork-0.1.4.1        #gotson/komga:1.24.3  #this commented out version is for base komga, not for komga-enchanced
+    container_name: komga
+    volumes:
+      - type: bind
+        source: /srv/docker/config/komga/config/
+        target: /config
+      - type: bind
+        source: /srv/mergerfs/lukas/media/manga
+        target: /data
+    ports:
+      - 25600:25600
+    user: "0:0"
+    environment:
+      - KOMGA_CORS_ALLOWEDORIGINS=http://localhost:8085,http://192.168.50.40:8085,https://komf.lacksaufer.dedyn.io
+      - TZ=Europe/Berlin
+    restart: unless-stopped
+    networks:
+      - arr-net
+
+  suwayomi:
+    image: ghcr.io/suwayomi/suwayomi-server:stable
+    container_name: suwayomi-server
+    environment:
+      - TZ=Europe/Berlin
+      - FLARESOLVERR_ENABLED=true
+      - FLARESOLVERR_URL=http://flaresolverr:8191
+    dns:
+      - 192.168.50.40
+    volumes:
+      - /srv/docker/config/suwayomi/config:/home/suwayomi/.local/share/Tachidesk
+      - /srv/mergerfs/lukas/media/manga:/manga
+    ports:
+      - "4567:4567"
+    user: 1000:1000
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    networks:
+      - arr-net
+
+  flaresolverr:
+    image: ghcr.io/thephaseless/byparr:latest
+    container_name: flaresolverr
+    init: true
+    environment:
+      - TZ=Europe/Berlin
+    restart: unless-stopped
+    networks:
+      - arr-net
+
+  komf:
+    image: sndxr/komf:latest
+    container_name: komf
+    ports:
+      - "8085:8085"
+    user: "1000:1000"
+    environment:
+      - TZ=Europe/Berlin
+      - JAVA_TOOL_OPTIONS=-XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC
+      - KOMF_METADATA_SERIES_COVERS=true
+      - KOMF_METADATA_BOOK_COVERS=true
+    volumes:
+      - /srv/docker/config/komf:/config
+      - /srv/mergerfs/lukas/media/manga:/data
+    restart: unless-stopped
+    networks:
+      - arr-net
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    ports:
+    - 9445:80
+    volumes:
+    - /srv/docker/config/vaultwarden:/data:rw
+    environment:
+    - ADMIN_TOKEN=${ADMIN_TOKEN}
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /srv/docker/config/prowlarr/data:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+    networks:
+      - arr-net
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      - WEBUI_PORT=8088
+      - TORRENTING_PORT=6881
+    volumes:
+      - /srv/docker/config/qbittorrent/appdata:/config
+      - /srv/mergerfs/lukas/media/downloads:/downloads
+    ports:
+      - 8088:8088
+      - 6881:6881
+      - 6881:6881/udp
+    stop_grace_period: "10s"
+    restart: unless-stopped
+    networks:
+      - arr-net
+
+  core:
+    container_name: searxng-core
+    image: docker.io/searxng/searxng:${SEARXNG_VERSION:-latest}
+    restart: always
+    ports:
+      - ${SEARXNG_HOST:+${SEARXNG_HOST}:}${SEARXNG_PORT:-8080}:${SEARXNG_PORT:-8080}
+    env_file: ./.env
+    volumes:
+      - /srv/docker/config/searxng/core-config/:/etc/searxng/:Z
+      - /srv/docker/config/searxng/core-data:/var/cache/searxng/
+
+  valkey:
+    container_name: searxng-valkey
+    image: docker.io/valkey/valkey:9-alpine
+    command: valkey-server --save 30 1 --loglevel warning
+    restart: always
+    volumes:
+      - /srv/docker/config/valkey:/data/
+
+volumes:
+  model-cache:
+  n8n_data:
+
+networks:
+  nginx-proxy:
+    external: true
+  arr-net:
+    external: true
