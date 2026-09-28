@@ -1,0 +1,39 @@
+# -------------------
+# GLOBAL
+# -------------------
+GENERIC_TIMEZONE=
+
+# -------------------
+# n8n
+# -------------------
+N8N_ENCRYPTION_KEY=
+DOMAIN_NAME=
+SUBDOMAIN=
+
+# -------------------
+# immich
+# -------------------
+UPLOAD_LOCATION=
+DB_DATA_LOCATION=
+IMMICH_VERSION=
+DB_PASSWORD=
+DB_USERNAME=
+DB_DATABASE_NAME=
+
+# -------------------
+# vaultwarden
+# -------------------
+ADMIN_TOKEN=
+
+# -------------------
+# SearXNG
+# -------------------
+SEARXNG_VERSION=
+SEARXNG_HOST=
+SEARXNG_PORT=
+
+# -------------------
+# WUD
+# -------------------
+ADMIN_USER=
+ADMIN_PASSWORD=
