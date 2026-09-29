@@ -43,12 +43,14 @@ services:
   stirling-pdf:
     image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest
     container_name: stirlingpdf
-    user: "0:0"
     ports:
       - 8081:8080
     volumes:
       - /srv/docker/config/stirlingpdf:/usr/share/tessdata
       - /srv/mergerfs/lukas/media/pdfs:/pdfs
+    environment:
+      - PUID=1000
+      - GUID=1000
     restart: unless-stopped
 
   adguard:
@@ -92,16 +94,28 @@ services:
   whatsupdocker:
     image: getwud/wud
     container_name: wud
-    # user: "1000:1000"  # uncommented due to permission issues
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+    user: "1000:1000"
     ports:
       - "3001:3000"
     env_file:
       - .env
     environment:
-     - WUD_AUTH_ADMIN_USER=${ADMIN_USER}
-     - WUD_AUTH_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - WUD_AUTH_ADMIN_USER=${ADMIN_USER}
+      - WUD_AUTH_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - WUD_WATCHER_LOCAL_HOST=socket-proxy
+      - WUD_WATCHER_LOCAL_PORT=2375
+    volumes:
+      - /srv/docker/config/wud:/store
+    restart: unless-stopped
+
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: socket-proxy
+    environment:
+      - CONTAINERS=1
+      - IMAGES=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
 
   dashy:
@@ -162,8 +176,6 @@ services:
       - /srv/docker/config/radarr:/config
       - /srv/mergerfs/lukas/media/movies:/movies
       - /srv/mergerfs/lukas/media/downloads:/downloads
-    ports:
-      - "7878:7878"
     restart: unless-stopped
     networks:
       - arr-net
@@ -180,8 +192,6 @@ services:
       - /srv/mergerfs/lukas/media/tvShows:/tvShows
       - /srv/mergerfs/lukas/media/anime:/anime
       - /srv/mergerfs/lukas/media/downloads:/downloads
-    ports:
-      - "8989:8989"
     restart: unless-stopped
     networks:
       - arr-net
@@ -251,7 +261,7 @@ services:
     ports:
       - "5678:5678"
     env_file:
-      - /srv/docker/compose/.env
+      - .env
     environment:
       - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
       - N8N_PORT=5678
@@ -285,11 +295,13 @@ services:
       - PUID=0
       - PGID=0
       - TZ=Europe/Berlin
-      - PASSWORD=codeserver-lukas
-      - SUDO_PASSWORD=debian-root
+      - PASSWORD=${CODE_PASSWORD}
+      - SUDO_PASSWORD=${CODE_SUDO_PASSWORD}
     volumes:
       - /srv/docker/config/codeserver/config:/config
-      - /srv:/srv
+      - /srv/docker:/srv/docker
+    env_file:
+      - .env
     ports:
       - 8443:8443
     restart: unless-stopped
@@ -306,9 +318,9 @@ services:
         target: /data
     ports:
       - 25600:25600
-    user: "0:0"
+    user: "1000:1000"
     environment:
-      - KOMGA_CORS_ALLOWEDORIGINS=http://localhost:8085,http://192.168.50.40:8085,https://komf.lacksaufer.dedyn.io
+      - KOMGA_CORS_ALLOWEDORIGINS=http://komf:8085,https://komf.lacksaufer.dedyn.io
       - TZ=Europe/Berlin
     restart: unless-stopped
     networks:
@@ -350,8 +362,6 @@ services:
   komf:
     image: sndxr/komf:latest
     container_name: komf
-    ports:
-      - "8085:8085"
     user: "1000:1000"
     environment:
       - TZ=Europe/Berlin
@@ -369,12 +379,14 @@ services:
     image: vaultwarden/server:latest
     container_name: vaultwarden
     restart: unless-stopped
-    ports:
-    - 9445:80
     volumes:
     - /srv/docker/config/vaultwarden:/data:rw
     environment:
     - ADMIN_TOKEN=${ADMIN_TOKEN}
+    env_file:
+      - .env
+    networks:
+      - nginx-proxy
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
