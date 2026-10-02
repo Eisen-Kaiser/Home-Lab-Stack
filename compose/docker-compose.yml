@@ -5,8 +5,6 @@ services:
     user: "1000:1000"
     devices:
       - /dev/dri:/dev/dri
-    expose:
-     - "8096"
     volumes:
       - /srv/docker/config/jellyfin:/config
       - /srv/mergerfs/lukas/media/movies:/media/movies
@@ -21,8 +19,6 @@ services:
     image: ghcr.io/advplyr/audiobookshelf:latest
     container_name: audiobookshelf
     user: "1000:1000"
-    ports:
-      - 13378:80
     volumes:
       - /srv/mergerfs/lukas/media/audiobooks:/audiobooks
       - /srv/mergerfs/lukas/media/podcasts:/podcasts
@@ -35,8 +31,6 @@ services:
   kavita:
     image: jvmilazz0/kavita:latest
     container_name: kavita
-    ports:
-      - "5000:5000"
     volumes:
       - /srv/docker/config/kavita:/kavita/config
       - /srv/mergerfs/lukas/media/books:/media/books
@@ -105,8 +99,6 @@ services:
     image: getwud/wud
     container_name: wud
     user: "1000:1000"
-    ports:
-      - "3001:3000"
     env_file:
       - .env
     environment:
@@ -139,8 +131,6 @@ services:
       - /srv/docker/config/dashy/dashboard2.yml:/app/user-data/dashboard2.yml
       - /srv/docker/config/dashy:/app/user-data/item-icons/
       - /srv/docker/icons:/app/public/icons
-    expose:
-      - "8080"
     environment:
       - NODE_ENV=production
     healthcheck:
@@ -153,8 +143,6 @@ services:
     image: b4bz/homer:latest
     container_name: homer
     user: "1000:1000"
-    ports:
-      - "8082:8080"
     volumes:
       - /srv/docker/config/homer/data:/www/assets
     restart: unless-stopped
@@ -222,8 +210,6 @@ services:
       - /etc/localtime:/etc/localtime:ro
     env_file:
       - .env
-    ports:
-      - '2283:2283'
     depends_on:
       - redis
       - database
@@ -248,6 +234,8 @@ services:
     restart: always
     healthcheck:
       disable: false
+    networks:
+      - nginx-proxy
 
   redis:
     container_name: immich_redis
@@ -255,6 +243,8 @@ services:
     healthcheck:
       test: redis-cli ping || exit 1
     restart: always
+    networks:
+      - nginx-proxy
 
   database:
     container_name: immich_postgres
@@ -270,11 +260,11 @@ services:
     restart: always
     healthcheck:
       disable: false
+    networks:
+      - nginx-proxy
 
   n8n:
     image: docker.n8n.io/n8nio/n8n
-    ports:
-      - "5678:5678"
     env_file:
       - .env
     environment:
@@ -319,8 +309,6 @@ services:
       - SUDO_PASSWORD=${CODE_SUDO_PASSWORD}
     env_file:
       - .env
-    ports:
-      - 8443:8443
     volumes:
       - /srv/docker/config/codeserver/config:/config
       - /srv/docker:/srv/docker

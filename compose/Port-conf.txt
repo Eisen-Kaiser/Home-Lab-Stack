@@ -1,0 +1,81 @@
+# use only if u do not have have user defiened networks.
+
+jellyfin:
+- 8096:8096
+
+audiobookshelf:
+- 13378:80
+
+kavita:
+- 5000:5000
+
+stirling-pdf:
+- 8081:8080
+
+adguardhome:
+- 53:53/tcp
+- 53:53/udp
+- 3000:3000/tcp
+
+nginxproxymanager:
+- 80:80
+- 81:81
+- 443:443
+
+portainer:
+- 9000:9000
+- 9443:9443
+
+whatsupdocker:
+- 3001:3000
+
+dashy:
+- 8080:8080
+
+homer:
+- 8082:8080
+
+transmission:
+- 9091:9091
+- 51413:51413
+- 51413:51413/udp
+
+radarr:
+- 7878:7878
+
+sonarr:
+- 8989:8989
+
+immich-server:
+- 2283:2283
+
+n8n:
+- 5678:5678
+
+netbootxyz
+- 3002:3000
+- 69:69/udp
+- 8080:80
+
+codeserver:
+- 8443:8443
+
+komga:
+- 25600:25600
+
+suwayomi:
+- 4567:4567
+
+komf:
+- 8085:8085
+
+vaultwarden:
+- 9445:80
+
+prowlarr:
+- 9696:9696
+
+qbittorrent:
+- 8088:8088
+- 6881:6881
+- 6881:6881/udp
