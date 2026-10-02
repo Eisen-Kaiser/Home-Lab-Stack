@@ -29,6 +29,8 @@ services:
       - /srv/docker/config/audiobookshelf/metadata:/metadata
       - /srv/docker/config/audiobookshelf/config:/config
     restart: unless-stopped
+    networks:
+      - nginx-proxy
 
   kavita:
     image: jvmilazz0/kavita:latest
@@ -39,19 +41,23 @@ services:
       - /srv/docker/config/kavita:/kavita/config
       - /srv/mergerfs/lukas/media/books:/media/books
     restart: unless-stopped
+    networks:
+      - nginx-proxy
 
   stirling-pdf:
     image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest
     container_name: stirlingpdf
     ports:
       - 8081:8080
-    volumes:
-      - /srv/docker/config/stirlingpdf:/usr/share/tessdata
-      - /srv/mergerfs/lukas/media/pdfs:/pdfs
     environment:
       - PUID=1000
       - GUID=1000
+    volumes:
+      - /srv/docker/config/stirlingpdf:/usr/share/tessdata
+      - /srv/mergerfs/lukas/media/pdfs:/pdfs
     restart: unless-stopped
+    networks:
+      - nginx-proxy
 
   adguard:
     image: adguard/adguardhome:latest
@@ -60,10 +66,12 @@ services:
       - "53:53/tcp"
       - "53:53/udp"
       - "3000:3000/tcp"
-    restart: unless-stopped
     volumes:
       - /srv/docker/config/adguardhome/work:/opt/adguardhome/work
       - /srv/docker/config/adguardhome/conf:/opt/adguardhome/conf
+    restart: unless-stopped
+    networks:
+      - nginx-proxy
 
   nginxproxymanager:
     image: 'jc21/nginx-proxy-manager:latest'
@@ -83,13 +91,15 @@ services:
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
-    restart: always
     ports:
       - "9000:9000"
       - "9443:9443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /srv/docker/config/portainer/data:/data
+    restart: always
+    networks:
+      - nginx-proxy
 
   whatsupdocker:
     image: getwud/wud
@@ -107,6 +117,8 @@ services:
     volumes:
       - /srv/docker/config/wud:/store
     restart: unless-stopped
+    networks:
+      - nginx-proxy
 
   socket-proxy:
     image: tecnativa/docker-socket-proxy
@@ -122,7 +134,6 @@ services:
     image: lissy93/dashy:latest
     container_name: dashy
     user: "0:0"
-    restart: unless-stopped
     volumes:
       - /srv/docker/config/dashy/conf.yml:/app/user-data/conf.yml
       - /srv/docker/config/dashy/dashboard2.yml:/app/user-data/dashboard2.yml
@@ -134,6 +145,7 @@ services:
       - NODE_ENV=production
     healthcheck:
       disable: true
+    restart: unless-stopped
     networks:
       - nginx-proxy
 
@@ -141,11 +153,13 @@ services:
     image: b4bz/homer:latest
     container_name: homer
     user: "1000:1000"
-    volumes:
-      - /srv/docker/config/homer/data:/www/assets
     ports:
       - "8082:8080"
+    volumes:
+      - /srv/docker/config/homer/data:/www/assets
     restart: unless-stopped
+    networks:
+      - nginx-proxy
 
   transmission:
     image: lscr.io/linuxserver/transmission:latest
@@ -154,13 +168,13 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Berlin
-    volumes:
-      - /srv/docker/config/transmission/data:/config
-      - /srv/mergerfs/lukas/media/downloads:/downloads
     ports:
       - "9091:9091"
       - "51413:51413"
       - "51413:51413/udp"
+    volumes:
+      - /srv/docker/config/transmission/data:/config
+      - /srv/mergerfs/lukas/media/downloads:/downloads
     restart: unless-stopped
     networks:
       - arr-net
@@ -216,6 +230,8 @@ services:
     restart: always
     healthcheck:
       disable: false
+    networks:
+      - nginx-proxy
 
   immich-machine-learning:
     container_name: immich_machine_learning
@@ -257,7 +273,6 @@ services:
 
   n8n:
     image: docker.n8n.io/n8nio/n8n
-    restart: always
     ports:
       - "5678:5678"
     env_file:
@@ -273,20 +288,25 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - /srv/docker/config/n8n/local-files:/files
+    restart: always
+    networks:
+      - nginx-proxy
 
   netbootxyz:
     image: ghcr.io/netbootxyz/netbootxyz
     container_name: netbootxyz
     environment:
       - MENU_VERSION=3.0.1
-    volumes:
-      - /srv/docker/config/netbootxyz/config:/config
-      - /srv/docker/config/netbootxyz/assets:/assets
     ports:
       - 3002:3000
       - 69:69/udp
       - 8080:80
+    volumes:
+      - /srv/docker/config/netbootxyz/config:/config
+      - /srv/docker/config/netbootxyz/assets:/assets
     restart: unless-stopped
+    networks:
+      - nginx-proxy
 
   codeserver:
     image: lscr.io/linuxserver/code-server:latest
@@ -297,14 +317,16 @@ services:
       - TZ=Europe/Berlin
       - PASSWORD=${CODE_PASSWORD}
       - SUDO_PASSWORD=${CODE_SUDO_PASSWORD}
-    volumes:
-      - /srv/docker/config/codeserver/config:/config
-      - /srv/docker:/srv/docker
     env_file:
       - .env
     ports:
       - 8443:8443
+    volumes:
+      - /srv/docker/config/codeserver/config:/config
+      - /srv/docker:/srv/docker
     restart: unless-stopped
+    networks:
+      - nginx-proxy
 
   komga:
     image: 08shiro80/komga:1.24.3-fork-0.1.4.1        #gotson/komga:1.24.3  #this commented out version is for base komga, not for komga-enchanced
@@ -427,21 +449,21 @@ services:
   core:
     container_name: searxng-core
     image: docker.io/searxng/searxng:${SEARXNG_VERSION:-latest}
-    restart: always
     ports:
       - ${SEARXNG_HOST:+${SEARXNG_HOST}:}${SEARXNG_PORT:-8080}:${SEARXNG_PORT:-8080}
     env_file: ./.env
     volumes:
       - /srv/docker/config/searxng/core-config/:/etc/searxng/:Z
       - /srv/docker/config/searxng/core-data:/var/cache/searxng/
+    restart: always
 
   valkey:
     container_name: searxng-valkey
     image: docker.io/valkey/valkey:9-alpine
     command: valkey-server --save 30 1 --loglevel warning
-    restart: always
     volumes:
       - /srv/docker/config/valkey:/data/
+    restart: always
 
 volumes:
   model-cache:
