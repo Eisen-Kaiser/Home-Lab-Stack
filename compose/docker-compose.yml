@@ -14,9 +14,6 @@ services:
       - /srv/mergerfs/lukas/media/anime:/media/anime
       - /srv/mergerfs/lukas/media/music:/media/music
     restart: unless-stopped
-    networks:
-      - nginx-proxy
-
   audiobookshelf:
     image: ghcr.io/advplyr/audiobookshelf:latest
     container_name: audiobookshelf
@@ -29,8 +26,6 @@ services:
       - /srv/docker/config/audiobookshelf/metadata:/metadata
       - /srv/docker/config/audiobookshelf/config:/config
     restart: unless-stopped
-    networks:
-      - arr-net
 
   kavita:
     image: jvmilazz0/kavita:latest
@@ -41,8 +36,6 @@ services:
       - /srv/docker/config/kavita:/kavita/config
       - /srv/mergerfs/lukas/media/books:/media/books
     restart: unless-stopped
-    networks:
-      - nginx-proxy
 
   stirling-pdf:
     image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest
@@ -56,8 +49,6 @@ services:
       - /srv/docker/config/stirlingpdf:/usr/share/tessdata
       - /srv/mergerfs/lukas/media/pdfs:/pdfs
     restart: unless-stopped
-    networks:
-      - nginx-proxy
 
   adguard:
     image: adguard/adguardhome:latest
@@ -70,27 +61,6 @@ services:
       - /srv/docker/config/adguardhome/work:/opt/adguardhome/work
       - /srv/docker/config/adguardhome/conf:/opt/adguardhome/conf
     restart: unless-stopped
-    networks:
-      dns:
-        ipv4_address: 172.30.53.53
-
-  nginxproxymanager:
-    image: 'jc21/nginx-proxy-manager:latest'
-    container_name: nginxproxymanager
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "81:81"
-      - "443:443"
-    volumes:
-      - /srv/docker/config/nginx/data:/data
-      - /srv/docker/config/nginx/letsencrypt:/etc/letsencrypt
-    dns:
-      - 172.30.53.53
-    networks:
-     - nginx-proxy
-     - arr-net
-     - dns
 
   portainer:
     image: portainer/portainer-ce:latest
@@ -102,8 +72,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /srv/docker/config/portainer/data:/data
     restart: always
-    networks:
-      - nginx-proxy
 
   whatsupdocker:
     image: getwud/wud
@@ -121,8 +89,6 @@ services:
     volumes:
       - /srv/docker/config/wud:/store
     restart: unless-stopped
-    networks:
-      - nginx-proxy
 
   socket-proxy:
     image: tecnativa/docker-socket-proxy
@@ -150,8 +116,6 @@ services:
     healthcheck:
       disable: true
     restart: unless-stopped
-    networks:
-      - nginx-proxy
 
   homer:
     image: b4bz/homer:latest
@@ -160,8 +124,6 @@ services:
     volumes:
       - /srv/docker/config/homer/data:/www/assets
     restart: unless-stopped
-    networks:
-      - nginx-proxy
 
   transmission:
     image: lscr.io/linuxserver/transmission:latest
@@ -236,8 +198,6 @@ services:
     restart: always
     healthcheck:
       disable: false
-    networks:
-      - nginx-proxy
 
   immich-machine-learning:
     container_name: immich_machine_learning
@@ -254,8 +214,6 @@ services:
     restart: always
     healthcheck:
       disable: false
-    networks:
-      - nginx-proxy
 
   redis:
     container_name: immich_redis
@@ -263,8 +221,6 @@ services:
     healthcheck:
       test: redis-cli ping || exit 1
     restart: always
-    networks:
-      - nginx-proxy
 
   database:
     container_name: immich_postgres
@@ -280,8 +236,6 @@ services:
     restart: always
     healthcheck:
       disable: false
-    networks:
-      - nginx-proxy
 
   n8n:
     image: docker.n8n.io/n8nio/n8n
@@ -301,8 +255,6 @@ services:
       - n8n_data:/home/node/.n8n
       - /srv/docker/config/n8n/local-files:/files
     restart: always
-    networks:
-      - nginx-proxy
 
 #  netbootxyz:
 #    image: ghcr.io/netbootxyz/netbootxyz
@@ -317,8 +269,6 @@ services:
 #      - /srv/docker/config/netbootxyz/config:/config
 #      - /srv/docker/config/netbootxyz/assets:/assets
 #    restart: unless-stopped
-#    networks:
-#      - nginx-proxy
 
   codeserver:
     image: lscr.io/linuxserver/code-server:latest
@@ -337,8 +287,6 @@ services:
       - /srv/docker/config/codeserver/config:/config
       - /srv/docker:/srv/docker
     restart: unless-stopped
-    networks:
-      - nginx-proxy
 
   komga:
     image: 08shiro80/komga:1.24.3-fork-0.1.4.1        #gotson/komga:1.24.3  #this commented out version is for base komga, not for komga-enchanced
@@ -368,7 +316,7 @@ services:
       - FLARESOLVERR_ENABLED=true
       - FLARESOLVERR_URL=http://flaresolverr:8191
     dns:
-      - 192.168.50.40
+      - 192.168.50.10
     volumes:
       - /srv/docker/config/suwayomi/config:/home/suwayomi/.local/share/Tachidesk
       - /srv/mergerfs/lukas/media/manga:/manga
@@ -380,8 +328,6 @@ services:
       resources:
         limits:
           memory: 1G
-    networks:
-      - arr-net
 
   flaresolverr:
     image: ghcr.io/thephaseless/byparr:latest
@@ -423,8 +369,6 @@ services:
     - ADMIN_TOKEN=${ADMIN_TOKEN}
     env_file:
       - .env
-    networks:
-      - nginx-proxy
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -486,9 +430,5 @@ volumes:
   n8n_data:
 
 networks:
-  nginx-proxy:
-    external: true
   arr-net:
-    external: true
-  dns:
     external: true
