@@ -121,6 +121,8 @@ services:
     image: b4bz/homer:latest
     container_name: homer
     user: "1000:1000"
+    ports:
+      - "8082:8080"
     volumes:
       - /srv/docker/config/homer/data:/www/assets
     restart: unless-stopped
